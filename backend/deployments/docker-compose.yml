@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: ai-gateway-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: ai_gateway
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+
+  redis:
+    image: redis:7-alpine
+    container_name: ai-gateway-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: ai-gateway-clickhouse
+    environment:
+      CLICKHOUSE_DB: ai_gateway
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ""
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+
+  backend:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile
+    container_name: ai-gateway-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - CONFIG_PATH=/app/config.yaml
+    volumes:
+      - ../config.yaml:/app/config.yaml
+    depends_on:
+      - mysql
+      - redis
+      - clickhouse
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  redis_data:
+  clickhouse_data:
