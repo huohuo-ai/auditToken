@@ -15,7 +15,7 @@
         <el-table-column prop="display_name" label="显示名称" />
         <el-table-column prop="provider" label="提供商" />
         <el-table-column prop="model_id" label="模型ID" />
-        <el-table-column prop="system_prompt" label="系统提示词" show-overflow-tooltip>
+        <el-table-column prop="system_prompt" label="系统提示词" show-overflow-tooltip />
         <el-table-column prop="status" label="状态">
           <template #default="{ row }">
             <el-tag v-if="row.status === 'active'" type="success">正常</el-tag>
