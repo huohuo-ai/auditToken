@@ -6,7 +6,6 @@ import (
 	"ai-gateway/pkg/llm"
 	"bufio"
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
