@@ -12,17 +12,17 @@ ENV GO111MODULE=on
 # 复制 go.mod
 COPY go.mod ./
 
-# 下载依赖（如果没有 go.sum，会自动生成）
-RUN go mod download && go mod tidy
+# 初始化模块并下载依赖
+RUN go mod tidy
 
 # 复制源代码
 COPY . .
 
-# 重新下载并整理依赖
-RUN go mod download
+# 再次整理依赖并下载
+RUN go mod tidy && go mod download
 
-# 构建
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o server cmd/server/main.go
+# 构建（添加详细输出）
+RUN CGO_ENABLED=0 GOOS=linux go build -v -a -installsuffix cgo -o server cmd/server/main.go
 
 # 最终镜像
 FROM alpine:latest
