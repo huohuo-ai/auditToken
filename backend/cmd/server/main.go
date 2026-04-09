@@ -8,6 +8,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+func init() {
+	// 设置日志级别为 Info，否则 Info 级别的日志不会输出
+	logrus.SetLevel(logrus.InfoLevel)
+	logrus.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp: true,
+	})
+}
+
 func main() {
 	// 加载配置
 	cfg, err := config.LoadConfig("config.yaml")
