@@ -134,7 +134,7 @@ func (s *AuditService) GetDashboardStats() (map[string]interface{}, error) {
 	}
 	
 	// 最近7天趋势
-	rows, err := repository.GetClickHouse().Query(ctx, `
+	rows1, err := repository.GetClickHouse().Query(ctx, `
 		SELECT 
 			toDate(timestamp) as date,
 			count() as requests,
@@ -145,12 +145,12 @@ func (s *AuditService) GetDashboardStats() (map[string]interface{}, error) {
 		ORDER BY date
 	`)
 	if err == nil {
-		defer rows.Close()
+		defer rows1.Close()
 		var trends []map[string]interface{}
-		for rows.Next() {
+		for rows1.Next() {
 			var date time.Time
 			var requests, tokens uint64
-			if err := rows.Scan(&date, &requests, &tokens); err == nil {
+			if err := rows1.Scan(&date, &requests, &tokens); err == nil {
 				trends = append(trends, map[string]interface{}{
 					"date":     date.Format("2006-01-02"),
 					"requests": requests,
@@ -162,7 +162,7 @@ func (s *AuditService) GetDashboardStats() (map[string]interface{}, error) {
 	}
 	
 	// 模型使用排行
-	rows, err = repository.GetClickHouse().Query(ctx, `
+	rows2, err := repository.GetClickHouse().Query(ctx, `
 		SELECT 
 			model_name,
 			count() as requests,
@@ -174,12 +174,12 @@ func (s *AuditService) GetDashboardStats() (map[string]interface{}, error) {
 		LIMIT 10
 	`)
 	if err == nil {
-		defer rows.Close()
+		defer rows2.Close()
 		var modelStats []map[string]interface{}
-		for rows.Next() {
+		for rows2.Next() {
 			var modelName string
 			var requests, tokens uint64
-			if err := rows.Scan(&modelName, &requests, &tokens); err == nil {
+			if err := rows2.Scan(&modelName, &requests, &tokens); err == nil {
 				modelStats = append(modelStats, map[string]interface{}{
 					"model_name": modelName,
 					"requests":   requests,
