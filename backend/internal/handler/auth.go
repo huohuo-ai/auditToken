@@ -46,13 +46,17 @@ type ChangePasswordRequest struct {
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		logrus.WithError(err).Error("Failed to bind login request")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	logrus.WithField("username", req.Username).Info("Login attempt")
+
 	// 查找用户
 	user, err := h.userService.GetUserByUsername(req.Username)
 	if err != nil {
+		logrus.WithError(err).WithField("username", req.Username).Warn("User not found")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid username or password"})
 		return
 	}

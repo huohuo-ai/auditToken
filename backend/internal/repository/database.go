@@ -67,8 +67,11 @@ func CreateDefaultAdmin(db *gorm.DB) error {
 	var count int64
 	db.Model(&model.User{}).Where("role = ?", model.RoleAdmin).Count(&count)
 	if count > 0 {
+		logrus.Info("Admin user already exists, skipping creation")
 		return nil
 	}
+
+	logrus.Info("Creating default admin user...")
 
 	// 默认管理员账号：admin / admin123
 	admin := &model.User{
@@ -82,6 +85,8 @@ func CreateDefaultAdmin(db *gorm.DB) error {
 	if err := db.Create(admin).Error; err != nil {
 		return fmt.Errorf("failed to create default admin: %w", err)
 	}
+
+	logrus.Info("Default admin user created successfully")
 
 	// 创建默认配额（无限制）
 	quota := &model.UserQuota{
