@@ -102,12 +102,40 @@ npm run serve
 npm run build
 ```
 
-### Docker部署
+### Docker Compose 一键部署（推荐）
+
+#### 方式一：使用部署脚本
 
 ```bash
-cd backend/deployments
-docker-compose up -d
+# 克隆仓库
+git clone https://github.com/huohuo-ai/auditToken.git
+cd auditToken
+
+# Linux/Mac
+./deploy.sh setup
+
+# Windows PowerShell
+.\deploy.ps1 setup
 ```
+
+#### 方式二：手动部署
+
+```bash
+# 1. 配置环境变量
+cp .env.example .env
+
+# 2. 配置后端
+cp backend/config.docker.yaml backend/config.yaml
+
+# 3. 启动服务
+docker compose up -d
+```
+
+访问地址：
+- 前端界面：http://localhost
+- 后端 API：http://localhost:8080
+
+详细部署文档请参考 [DEPLOY.md](./DEPLOY.md)
 
 ## 默认账号
 
