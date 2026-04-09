@@ -34,9 +34,12 @@ service.interceptors.response.use(
     if (response) {
       switch (response.status) {
         case 401:
-          ElMessage.error('登录已过期，请重新登录')
-          removeToken()
-          router.push('/login')
+          // 只在非登录页面跳转
+          if (router.currentRoute.value.path !== '/login') {
+            ElMessage.error('登录已过期，请重新登录')
+            removeToken()
+            router.push('/login')
+          }
           break
         case 403:
           ElMessage.error('没有权限执行此操作')

@@ -68,7 +68,9 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	// 验证密码
+	logrus.WithField("user_password_length", len(user.Password)).WithField("req_password_length", len(req.Password)).Info("Password check")
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+		logrus.WithError(err).Warn("Password verification failed")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid username or password"})
 		return
 	}

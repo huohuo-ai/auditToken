@@ -86,6 +86,8 @@ export default {
         this.$router.push('/')
       } catch (error) {
         console.error('Login error:', error)
+        const errorMsg = error.response?.data?.error || '登录失败，请检查用户名和密码'
+        ElMessage.error(errorMsg)
       } finally {
         this.loading = false
       }
