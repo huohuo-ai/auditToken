@@ -43,6 +43,7 @@ type AIModel struct {
 	RateLimitRPM    int             `json:"rate_limit_rpm" gorm:"default:60"` // 每分钟请求数限制
 	RateLimitTPM    int             `json:"rate_limit_tpm" gorm:"default:100000"` // 每分钟token数限制
 	IsDefault       bool            `json:"is_default" gorm:"default:false"`
+	SystemPrompt    string          `json:"system_prompt" gorm:"type:text"` // 系统提示词
 	Description     string          `json:"description" gorm:"size:500"`
 	CreatedAt       time.Time       `json:"created_at"`
 	UpdatedAt       time.Time       `json:"updated_at"`
@@ -68,18 +69,19 @@ func (m *AIModel) MaskAPIKey() string {
 // ToPublic 转换为公开信息（隐藏敏感字段）
 func (m *AIModel) ToPublic() map[string]interface{} {
 	return map[string]interface{}{
-		"id":           m.ID,
-		"uuid":         m.UUID,
-		"name":         m.Name,
-		"display_name": m.DisplayName,
-		"provider":     m.Provider,
-		"model_id":     m.ModelID,
-		"status":       m.Status,
-		"max_tokens":   m.MaxTokens,
-		"temperature":  m.Temperature,
-		"is_default":   m.IsDefault,
-		"description":  m.Description,
-		"created_at":   m.CreatedAt,
+		"id":            m.ID,
+		"uuid":          m.UUID,
+		"name":          m.Name,
+		"display_name":  m.DisplayName,
+		"provider":      m.Provider,
+		"model_id":      m.ModelID,
+		"status":        m.Status,
+		"max_tokens":    m.MaxTokens,
+		"temperature":   m.Temperature,
+		"is_default":    m.IsDefault,
+		"system_prompt": m.SystemPrompt,
+		"description":   m.Description,
+		"created_at":    m.CreatedAt,
 	}
 }
 

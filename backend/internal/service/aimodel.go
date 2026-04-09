@@ -4,6 +4,7 @@ import (
 	"ai-gateway/internal/model"
 	"ai-gateway/internal/repository"
 	"errors"
+	"fmt"
 
 	"gorm.io/gorm"
 )
@@ -34,6 +35,7 @@ type CreateModelRequest struct {
 	RateLimitRPM    int                   `json:"rate_limit_rpm,omitempty"`
 	RateLimitTPM    int                   `json:"rate_limit_tpm,omitempty"`
 	IsDefault       bool                  `json:"is_default,omitempty"`
+	SystemPrompt    string                `json:"system_prompt,omitempty"`
 	Description     string                `json:"description,omitempty"`
 }
 
@@ -52,6 +54,7 @@ type UpdateModelRequest struct {
 	RateLimitRPM    int                   `json:"rate_limit_rpm,omitempty"`
 	RateLimitTPM    int                   `json:"rate_limit_tpm,omitempty"`
 	IsDefault       bool                  `json:"is_default,omitempty"`
+	SystemPrompt    string                `json:"system_prompt,omitempty"`
 	Description     string                `json:"description,omitempty"`
 }
 
@@ -87,6 +90,7 @@ func (s *AIModelService) CreateModel(req *CreateModelRequest) (*model.AIModel, e
 		RateLimitRPM: req.RateLimitRPM,
 		RateLimitTPM: req.RateLimitTPM,
 		IsDefault:    req.IsDefault,
+		SystemPrompt: req.SystemPrompt,
 		Description:  req.Description,
 	}
 	
@@ -198,6 +202,8 @@ func (s *AIModelService) UpdateModel(id uint, req *UpdateModelRequest) (*model.A
 	if req.IsDefault != m.IsDefault {
 		updates["is_default"] = req.IsDefault
 	}
+	// SystemPrompt可以为空字符串，所以不检查是否为空
+	updates["system_prompt"] = req.SystemPrompt
 	if req.Description != "" {
 		updates["description"] = req.Description
 	}
@@ -207,7 +213,7 @@ func (s *AIModelService) UpdateModel(id uint, req *UpdateModelRequest) (*model.A
 			return nil, err
 		}
 		// 更新缓存
-		repository.GetRedis().Del(repository.GetRedis().Context(), "model:id:", id)
+		repository.GetRedis().Del(repository.GetRedis().Context(), fmt.Sprintf("model:id:%d", id))
 		if m.IsDefault {
 			repository.GetRedis().Del(repository.GetRedis().Context(), "model:default")
 		}
@@ -224,7 +230,7 @@ func (s *AIModelService) DeleteModel(id uint) error {
 	}
 	
 	// 删除缓存
-	repository.GetRedis().Del(repository.GetRedis().Context(), "model:id:", id)
+	repository.GetRedis().Del(repository.GetRedis().Context(), fmt.Sprintf("model:id:%d", id))
 	if m.IsDefault {
 		repository.GetRedis().Del(repository.GetRedis().Context(), "model:default")
 	}

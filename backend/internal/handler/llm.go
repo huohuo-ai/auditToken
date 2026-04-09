@@ -19,22 +19,6 @@ func NewLLMHandler() *LLMHandler {
 	}
 }
 
-// ChatCompletionRequest 对话请求
-type ChatCompletionRequest struct {
-	Model       string    `json:"model" binding:"required"`
-	Messages    []Message `json:"messages" binding:"required"`
-	Stream      bool      `json:"stream,omitempty"`
-	Temperature float64   `json:"temperature,omitempty"`
-	MaxTokens   int       `json:"max_tokens,omitempty"`
-	TopP        float64   `json:"top_p,omitempty"`
-}
-
-// Message 消息
-type Message struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-}
-
 // ChatCompletion 对话完成
 func (h *LLMHandler) ChatCompletion(c *gin.Context) {
 	userID, exists := c.Get("userID")

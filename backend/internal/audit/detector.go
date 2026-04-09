@@ -6,6 +6,7 @@ import (
 	"ai-gateway/internal/repository"
 	"encoding/json"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -215,7 +216,7 @@ func (d *RiskDetector) detectAbnormalFrequency(auditLog *model.AuditLog) *model.
 	// 这里简化处理，实际应该查询ClickHouse或Redis
 	
 	// 使用Redis统计用户请求频率
-	key := "freq:user:" + string(auditLog.UserID)
+	key := "freq:user:" + strconv.FormatUint(auditLog.UserID, 10)
 	count, _ := repository.GetRedis().Incr(repository.GetRedis().Context(), key).Result()
 	repository.GetRedis().Expire(repository.GetRedis().Context(), key, 5*time.Minute)
 	

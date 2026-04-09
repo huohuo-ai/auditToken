@@ -3,6 +3,7 @@ package service
 import (
 	"ai-gateway/internal/model"
 	"ai-gateway/internal/repository"
+	"context"
 	"time"
 )
 
@@ -88,7 +89,7 @@ func (s *AuditService) GetUserStatistics(userID uint64, startDate, endDate strin
 
 // GetDashboardStats 获取仪表盘统计
 func (s *AuditService) GetDashboardStats() (map[string]interface{}, error) {
-	ctx := repository.GetClickHouse().Context()
+	ctx := context.Background()
 	
 	stats := make(map[string]interface{})
 	
@@ -194,7 +195,7 @@ func (s *AuditService) GetDashboardStats() (map[string]interface{}, error) {
 
 // ResolveRiskEvent 解决风险事件
 func (s *AuditService) ResolveRiskEvent(eventID string, resolvedBy, note string) error {
-	ctx := repository.GetClickHouse().Context()
+	ctx := context.Background()
 	return repository.GetClickHouse().Exec(ctx, `
 		ALTER TABLE risk_events 
 		UPDATE is_resolved = 1, resolved_by = ?, resolved_at = now(), note = ?

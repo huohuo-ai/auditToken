@@ -15,6 +15,7 @@
         <el-table-column prop="display_name" label="显示名称" />
         <el-table-column prop="provider" label="提供商" />
         <el-table-column prop="model_id" label="模型ID" />
+        <el-table-column prop="system_prompt" label="系统提示词" show-overflow-tooltip>
         <el-table-column prop="status" label="状态">
           <template #default="{ row }">
             <el-tag v-if="row.status === 'active'" type="success">正常</el-tag>
@@ -89,8 +90,17 @@
         <el-form-item label="默认模型">
           <el-switch v-model="form.is_default" />
         </el-form-item>
+        <el-form-item label="系统提示词">
+          <el-input 
+            v-model="form.system_prompt" 
+            type="textarea" 
+            :rows="4" 
+            placeholder="设置系统提示词，如：你是一位专业的企业助手，请用中文回答..."
+          />
+          <div class="form-hint">配置后，每次请求会自动添加此系统提示词到对话开头</div>
+        </el-form-item>
         <el-form-item label="描述">
-          <el-input v-model="form.description" type="textarea" :rows="3" />
+          <el-input v-model="form.description" type="textarea" :rows="2" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -132,6 +142,7 @@ export default {
       max_tokens: 4096,
       temperature: 0.7,
       is_default: false,
+      system_prompt: '',
       description: ''
     })
     
@@ -174,6 +185,7 @@ export default {
         max_tokens: 4096,
         temperature: 0.7,
         is_default: false,
+        system_prompt: '',
         description: ''
       })
       dialogVisible.value = true
@@ -270,6 +282,12 @@ export default {
   .pagination {
     margin-top: 20px;
     text-align: right;
+  }
+  
+  .form-hint {
+    font-size: 12px;
+    color: #909399;
+    margin-top: 5px;
   }
 }
 </style>

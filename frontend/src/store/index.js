@@ -2,10 +2,20 @@ import { createStore } from 'vuex'
 import { login, getProfile } from '@/api/auth'
 import { setToken, removeToken } from '@/utils/auth'
 
+const safeJSONParse = (key, defaultValue) => {
+  try {
+    const item = localStorage.getItem(key)
+    return item ? JSON.parse(item) : defaultValue
+  } catch (e) {
+    console.warn(`Failed to parse localStorage key "${key}":`, e)
+    return defaultValue
+  }
+}
+
 export default createStore({
   state: {
     token: localStorage.getItem('token') || '',
-    user: JSON.parse(localStorage.getItem('user') || '{}'),
+    user: safeJSONParse('user', {}),
     sidebarCollapsed: false
   },
   
@@ -15,9 +25,13 @@ export default createStore({
       localStorage.setItem('token', token)
     },
     SET_USER(state, user) {
-      state.user = user
-      localStorage.setItem('user', JSON.stringify(user))
-      localStorage.setItem('userRole', user.role)
+      state.user = user || {}
+      try {
+        localStorage.setItem('user', JSON.stringify(user || {}))
+      } catch (e) {
+        console.warn('Failed to save user to localStorage:', e)
+      }
+      localStorage.setItem('userRole', (user && user.role) || '')
     },
     CLEAR_USER(state) {
       state.token = ''

@@ -58,19 +58,9 @@ func (s *LLMService) ChatCompletion(c *gin.Context, userID uint, req *ChatComple
 	if req.Model == "" {
 		m, err = s.modelService.GetDefaultModel()
 	} else {
-		// 尝试从缓存/数据库获取模型
-		client, err := llm.GetClientByModelName(req.Model)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
 		// 获取模型信息
 		db := repository.GetDB()
 		db.Where("name = ? OR model_id = ?", req.Model, req.Model).First(&m)
-		if m != nil {
-			// 使用缓存的client
-			_ = client
-		}
 	}
 	
 	if err != nil {
@@ -83,13 +73,30 @@ func (s *LLMService) ChatCompletion(c *gin.Context, userID uint, req *ChatComple
 		return
 	}
 	
-	// 创建LLM客户端
-	client := llm.NewClient(m)
+	// 创建LLM客户端（优先使用缓存的client）
+	var client *llm.Client
+	if cachedClient, err := llm.GetClientByModelName(m.ModelID); err == nil {
+		client = cachedClient
+	} else {
+		client = llm.NewClient(m)
+	}
 	
 	// 构建LLM请求
+	messages := convertMessages(req.Messages)
+	
+	// 如果模型配置了系统提示词，且消息列表中没有system消息，则自动添加
+	if m.SystemPrompt != "" && !hasSystemMessage(messages) {
+		systemMsg := model.Message{
+			Role:    "system",
+			Content: m.SystemPrompt,
+		}
+		// 将系统提示词插入到消息列表开头
+		messages = append([]model.Message{systemMsg}, messages...)
+	}
+	
 	llmReq := &model.LLMRequest{
 		Model:       m.ModelID,
-		Messages:    convertMessages(req.Messages),
+		Messages:    messages,
 		Stream:      req.Stream,
 		Temperature: req.Temperature,
 		MaxTokens:   req.MaxTokens,
@@ -265,6 +272,16 @@ func convertMessages(messages []Message) []model.Message {
 		}
 	}
 	return result
+}
+
+// hasSystemMessage 检查消息列表中是否包含system消息
+func hasSystemMessage(messages []model.Message) bool {
+	for _, m := range messages {
+		if m.Role == "system" {
+			return true
+		}
+	}
+	return false
 }
 
 // estimateTokens 预估token数量

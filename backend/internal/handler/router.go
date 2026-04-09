@@ -3,6 +3,7 @@ package handler
 import (
 	"ai-gateway/internal/middleware"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,7 +20,7 @@ func SetupRouter() *gin.Engine {
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"status": "ok",
-			"time":   "2024-01-01T00:00:00Z",
+			"time":   time.Now().Format(time.RFC3339),
 		})
 	})
 

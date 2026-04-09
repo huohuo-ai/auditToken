@@ -12,7 +12,7 @@ func main() {
 	// 加载配置
 	cfg, err := config.LoadConfig("config.yaml")
 	if err != nil {
-		logrus.WithError(err).Warn("Failed to load config file, using defaults")
+		logrus.WithError(err).Warn("Failed to load config file, using default values and continuing")
 	}
 
 	// 初始化数据库

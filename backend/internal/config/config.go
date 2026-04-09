@@ -80,17 +80,20 @@ func LoadConfig(path string) (*Config, error) {
 	viper.SetDefault("audit.off_hours_end", 6)
 	viper.SetDefault("audit.token_threshold_hourly", 100000)
 
-	if err := viper.ReadInConfig(); err != nil {
-		return nil, fmt.Errorf("failed to read config file: %w", err)
+	var config Config
+	configLoadErr := viper.ReadInConfig()
+	if configLoadErr != nil {
+		// 配置文件读取失败，使用默认值继续
+		configLoadErr = fmt.Errorf("failed to read config file: %w", configLoadErr)
 	}
 
-	var config Config
+	// Unmarshal 配置（包括默认值）
 	if err := viper.Unmarshal(&config); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
 	GlobalConfig = &config
-	return &config, nil
+	return &config, configLoadErr
 }
 
 func GetConfig() *Config {

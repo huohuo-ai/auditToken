@@ -5,7 +5,6 @@ import (
 	"ai-gateway/internal/repository"
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"time"
 
@@ -48,12 +47,44 @@ func AuditLog() gin.HandlerFunc {
 		
 		c.Next()
 		
-		// 记录审计日志
-		go func() {
-			if err := recordAuditLog(c, requestID, startTime, string(requestBody), blw.body.String()); err != nil {
+		// 记录审计日志 - 在启动 goroutine 之前提取所有需要的数据，避免数据竞争
+		userID, _ := c.Get("userID")
+		username, _ := c.Get("username")
+		
+		// 获取用户信息（在 goroutine 外获取，避免 context 被回收后访问）
+		var userEmail string
+		if userID != nil {
+			if user, err := GetCurrentUser(c); err == nil && user != nil {
+				userEmail = user.Email
+			}
+		}
+		
+		// 提取所有需要从 context 获取的数据
+		requestMethod := c.Request.Method
+		requestPath := c.Request.URL.Path
+		clientIP := c.ClientIP()
+		userAgent := c.Request.UserAgent()
+		requestHeaders := headersToJSON(c.Request.Header)
+		responseHeaders := headersToJSON(c.Writer.Header())
+		responseStatus := c.Writer.Status()
+		isStream := c.GetBool("isStream")
+		
+		// 将响应体转换为字符串（避免在 goroutine 中访问 blw）
+		responseBody := blw.body.String()
+		requestBodyStr := string(requestBody)
+		
+		// 启动 goroutine 记录审计日志，传递提取后的数据而非 context
+		go func(userID, username interface{}, userEmail, requestMethod, requestPath, clientIP, userAgent, 
+			requestHeaders, responseHeaders, requestBody, responseBody, requestID string, 
+			startTime time.Time, responseStatus int, isStream bool) {
+			if err := recordAuditLog(userID, username, userEmail, requestMethod, requestPath, clientIP, 
+				userAgent, requestHeaders, responseHeaders, requestBody, responseBody, requestID, 
+				startTime, responseStatus, isStream); err != nil {
 				logrus.WithError(err).Error("failed to record audit log")
 			}
-		}()
+		}(userID, username, userEmail, requestMethod, requestPath, clientIP, userAgent,
+			requestHeaders, responseHeaders, requestBodyStr, responseBody, requestID,
+			startTime, responseStatus, isStream)
 	}
 }
 
@@ -69,43 +100,37 @@ func (w bodyLogWriter) Write(b []byte) (int, error) {
 }
 
 // recordAuditLog 记录审计日志
-func recordAuditLog(c *gin.Context, requestID string, startTime time.Time, requestBody, responseBody string) error {
-	userID, _ := c.Get("userID")
-	username, _ := c.Get("username")
-	
+// 注意：此函数不在 goroutine 中访问 gin.Context，所有 context 数据应在调用前提取
+func recordAuditLog(userID, username interface{}, userEmail, requestMethod, requestPath, clientIP, userAgent,
+	requestHeaders, responseHeaders, requestBody, responseBody, requestID string,
+	startTime time.Time, responseStatus int, isStream bool) error {
+
 	uid := uint64(0)
 	uname := ""
-	uemail := ""
-	
+	uemail := userEmail
+
 	if userID != nil {
 		uid = uint64(userID.(uint))
 		if username != nil {
 			uname = username.(string)
 		}
-		// 获取用户邮箱
-		if user, err := GetCurrentUser(c); err == nil && user != nil {
-			uemail = user.Email
-		}
 	}
-	
+
 	// 提取模型名称
-	modelName := c.Param("model")
-	if modelName == "" {
-		// 从请求体中解析
-		var reqBody map[string]interface{}
-		if err := json.Unmarshal([]byte(requestBody), &reqBody); err == nil {
-			if m, ok := reqBody["model"].(string); ok {
-				modelName = m
-			}
+	modelName := ""
+	// 从请求体中解析模型名称
+	var reqBody map[string]interface{}
+	if err := json.Unmarshal([]byte(requestBody), &reqBody); err == nil {
+		if m, ok := reqBody["model"].(string); ok {
+			modelName = m
 		}
 	}
-	
+
 	// 解析token使用情况
 	var promptTokens, completionTokens, totalTokens int64
-	var responseStatus int = c.Writer.Status()
 	var hasError bool
 	var errorMessage string
-	
+
 	// 解析响应体获取token使用情况
 	var respBody map[string]interface{}
 	if err := json.Unmarshal([]byte(responseBody), &respBody); err == nil {
@@ -127,7 +152,7 @@ func recordAuditLog(c *gin.Context, requestID string, startTime time.Time, reque
 			}
 		}
 	}
-	
+
 	// 截断过长的内容
 	maxLength := 10000
 	if len(requestBody) > maxLength {
@@ -136,7 +161,7 @@ func recordAuditLog(c *gin.Context, requestID string, startTime time.Time, reque
 	if len(responseBody) > maxLength {
 		responseBody = responseBody[:maxLength] + "..."
 	}
-	
+
 	// 构建审计日志
 	auditLog := &model.AuditLog{
 		Timestamp:        time.Now(),
@@ -145,32 +170,32 @@ func recordAuditLog(c *gin.Context, requestID string, startTime time.Time, reque
 		UserName:         uname,
 		UserEmail:        uemail,
 		RequestTime:      startTime,
-		RequestMethod:    c.Request.Method,
-		RequestPath:      c.Request.URL.Path,
-		RequestIP:        c.ClientIP(),
-		UserAgent:        c.Request.UserAgent(),
-		RequestHeaders:   headersToJSON(c.Request.Header),
+		RequestMethod:    requestMethod,
+		RequestPath:      requestPath,
+		RequestIP:        clientIP,
+		UserAgent:        userAgent,
+		RequestHeaders:   requestHeaders,
 		RequestBody:      requestBody,
 		ModelName:        modelName,
 		ModelProvider:    "", // 可以从配置获取
 		ResponseTime:     time.Now(),
 		ResponseStatus:   responseStatus,
 		ResponseBody:     responseBody,
-		ResponseHeaders:  headersToJSON(c.Writer.Header()),
+		ResponseHeaders:  responseHeaders,
 		PromptTokens:     promptTokens,
 		CompletionTokens: completionTokens,
 		TotalTokens:      totalTokens,
 		LatencyMs:        time.Since(startTime).Milliseconds(),
-		IsStream:         c.GetBool("isStream"),
+		IsStream:         isStream,
 		HasError:         hasError || responseStatus >= 400,
 		ErrorMessage:     errorMessage,
 	}
-	
+
 	// 保存到ClickHouse
 	if err := repository.InsertAuditLog(auditLog); err != nil {
 		return err
 	}
-	
+
 	// 同时保存到MySQL用于实时统计
 	usageLog := &model.UsageLog{
 		UserID:           uint(uid),
@@ -184,14 +209,14 @@ func recordAuditLog(c *gin.Context, requestID string, startTime time.Time, reque
 		LatencyMs:        time.Since(startTime).Milliseconds(),
 		Status:           getStatusString(responseStatus),
 		ErrorMessage:     errorMessage,
-		IP:               c.ClientIP(),
-		UserAgent:        c.Request.UserAgent(),
+		IP:               clientIP,
+		UserAgent:        userAgent,
 	}
-	
+
 	if err := repository.GetDB().Create(usageLog).Error; err != nil {
 		logrus.WithError(err).Error("failed to save usage log to MySQL")
 	}
-	
+
 	return nil
 }
 
