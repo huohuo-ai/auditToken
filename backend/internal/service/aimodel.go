@@ -3,6 +3,7 @@ package service
 import (
 	"ai-gateway/internal/model"
 	"ai-gateway/internal/repository"
+	"context"
 	"errors"
 	"fmt"
 
@@ -213,9 +214,9 @@ func (s *AIModelService) UpdateModel(id uint, req *UpdateModelRequest) (*model.A
 			return nil, err
 		}
 		// 更新缓存
-		repository.GetRedis().Del(repository.GetRedis().Context(), fmt.Sprintf("model:id:%d", id))
+		repository.GetRedis().Del(context.Background(), fmt.Sprintf("model:id:%d", id))
 		if m.IsDefault {
-			repository.GetRedis().Del(repository.GetRedis().Context(), "model:default")
+			repository.GetRedis().Del(context.Background(), "model:default")
 		}
 	}
 	
@@ -230,9 +231,9 @@ func (s *AIModelService) DeleteModel(id uint) error {
 	}
 	
 	// 删除缓存
-	repository.GetRedis().Del(repository.GetRedis().Context(), fmt.Sprintf("model:id:%d", id))
+	repository.GetRedis().Del(context.Background(), fmt.Sprintf("model:id:%d", id))
 	if m.IsDefault {
-		repository.GetRedis().Del(repository.GetRedis().Context(), "model:default")
+		repository.GetRedis().Del(context.Background(), "model:default")
 	}
 	
 	return s.db.Delete(m).Error

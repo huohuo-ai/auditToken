@@ -4,6 +4,7 @@ import (
 	"ai-gateway/internal/config"
 	"ai-gateway/internal/model"
 	"ai-gateway/internal/repository"
+	"context"
 	"encoding/json"
 	"regexp"
 	"strconv"
@@ -217,8 +218,8 @@ func (d *RiskDetector) detectAbnormalFrequency(auditLog *model.AuditLog) *model.
 	
 	// 使用Redis统计用户请求频率
 	key := "freq:user:" + strconv.FormatUint(auditLog.UserID, 10)
-	count, _ := repository.GetRedis().Incr(repository.GetRedis().Context(), key).Result()
-	repository.GetRedis().Expire(repository.GetRedis().Context(), key, 5*time.Minute)
+	count, _ := repository.GetRedis().Incr(context.Background(), key).Result()
+	repository.GetRedis().Expire(context.Background(), key, 5*time.Minute)
 	
 	// 如果5分钟内请求超过100次，判定为异常
 	if count > 100 {
