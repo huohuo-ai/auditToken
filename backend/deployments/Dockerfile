@@ -29,7 +29,7 @@ FROM alpine:latest
 
 RUN apk --no-cache add ca-certificates
 
-WORKDIR /root/
+WORKDIR /app
 
 # 从builder复制二进制文件
 COPY --from=builder /app/server .
