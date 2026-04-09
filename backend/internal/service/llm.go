@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -124,7 +123,6 @@ func (s *LLMService) ChatCompletion(c *gin.Context, userID uint, req *ChatComple
 	}
 	
 	// 设置请求上下文
-	ctx := context.Background()
 	requestID := uuid.New().String()
 	c.Set("requestID", requestID)
 	c.Set("isStream", req.Stream)
@@ -331,7 +329,7 @@ func (s *LLMService) checkQuota(userID uint, estimatedTokens int64) (bool, strin
 }
 
 // updateQuotaUsage 更新配额使用
-func (s *LLMService) updateQuotaUsage(userID uint, tokens int) {
+func (s *LLMService) updateQuotaUsage(userID uint, tokens int64) {
 	db := repository.GetDB()
 	db.Model(&model.UserQuota{}).Where("user_id = ?", userID).Updates(map[string]interface{}{
 		"daily_used":   gorm.Expr("daily_used + ?", tokens),
@@ -341,14 +339,14 @@ func (s *LLMService) updateQuotaUsage(userID uint, tokens int) {
 }
 
 // recordUsage 记录使用日志
-func (s *LLMService) recordUsage(userID uint, requestID, modelName string, promptTokens, completionTokens, totalTokens int, latency int64, errorMsg string) {
+func (s *LLMService) recordUsage(userID uint, requestID, modelName string, promptTokens, completionTokens, totalTokens int64, latency int64, errorMsg string) {
 	log := &model.UsageLog{
 		UserID:           userID,
 		RequestID:        requestID,
 		ModelName:        modelName,
-		PromptTokens:     int64(promptTokens),
-		CompletionTokens: int64(completionTokens),
-		TotalTokens:      int64(totalTokens),
+		PromptTokens:     promptTokens,
+		CompletionTokens: completionTokens,
+		TotalTokens:      totalTokens,
 		RequestTime:      time.Now().Add(-time.Duration(latency) * time.Millisecond),
 		ResponseTime:     time.Now(),
 		LatencyMs:        latency,
